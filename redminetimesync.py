@@ -33,11 +33,14 @@ def fetchFromDatabase(dataFile, date):
     connection = sqlite3.connect(dataFile)
     dbCursor = connection.cursor()
     dbCursor.execute("""SELECT
-            activities.name,facts.start_time,facts.end_time,facts.description
+            activities.name,facts.start_time,facts.end_time,facts.description,tags.name
             FROM activities
             JOIN facts ON activities.id = facts.activity_id
+            JOIN fact_tags ON facts.id = fact_tags.fact_id
+            JOIN tags ON fact_tags.tag_id = tags.id
             WHERE facts.start_time LIKE ?
-            AND facts.end_time LIKE ?""", _date)
+            AND facts.end_time LIKE ?
+            AND tags.name IN ('Testing','Development','Design','Planning')""", _date)
     return dbCursor
 
 def filterNotNumericIssues(iterable):
@@ -69,8 +72,13 @@ def generateXml(refinedIssues):
     date = getDate()
     for issue in refinedIssues:
         comment = ""
+        activity = ""
+        if issue[4] == "Design": activity = "8"
+        elif issue[4] == "Development": activity = "9"
+        elif issue[4] == "Testing": activity = "11"
+        elif issue[4] == "Planning": activity = "12"
         if issue[3]: comment = issue[3] 
-        myxml.append('<time_entry><issue_id>%s</issue_id><spent_on>%s</spent_on><hours>%s</hours><comments>%s</comments></time_entry>' % (issue[0], date, calDuration(issue[2],issue[1]), comment))
+        myxml.append('<time_entry><issue_id>%s</issue_id><spent_on>%s</spent_on><hours>%s</hours><activity_id>%s</activity_id><comments>%s</comments></time_entry>' % (issue[0], date, calDuration(issue[2],issue[1]),activity,comment))
     return myxml
 
 def syncToRedmine():
@@ -85,6 +93,7 @@ def syncToRedmine():
         else:
             for issue in xml:
                 xmlDocument = minidom.parseString(issue)
+                print issue
                 myredmine.post("time_entries.xml", xmlDocument)
             print("Sync to %s [OK]" % configProperties['url'])
     else: print("Today no time entries to send... have you been lazy?")
