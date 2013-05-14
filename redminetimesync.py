@@ -45,16 +45,22 @@ def fetchFromDatabase(dataFile, date):
 
 def filterNotNumericIssues(iterable):
     '''Takes an iterable and scans for not numeric
-    data in the first column, via numericOnly() call'''
-    numericOnly = []
+    data in the first column, via filteredIssues() call'''
+    filteredIssues = []
     for issue in iterable:
         try:
             int(issue[0])
         except:
-            print "Filtering time entry named '%s'" % issue[0]
+            act = configProperties['act'].find(issue[0])
+            if act == -1:
+                print "Filtering time entry named '%s'" % issue[0]
+            else:
+                issueConvert = configProperties['act'][act:]
+                newIssue = (issueConvert[issueConvert.find(':')+1:issueConvert.find(',')],issue[1],issue[2],issue[3],issue[4])
+                filteredIssues.append(newIssue)
         else:
-            numericOnly.append(issue)
-    return numericOnly
+            filteredIssues.append(issue)
+    return filteredIssues
 
 def calDuration(t2,t1):
     '''calculate delta between two timestamps
